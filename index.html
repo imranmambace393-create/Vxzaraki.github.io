@@ -1,0 +1,811 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>VX zaraki - Plataforma de Vídeos</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 21'%3E%3Crect width='30' height='21' rx='6' fill='%23ff0033'/%3E%3C/svg%3E">
+<style>
+:root{--bg:#fff;--bg-card:#f2f2f2;--hover:#f4efe6;--text-main:#0f0f0f;--text-muted:#606060;--border:#e5e5e5;--primary:#ff0033;--chip-on-bg:#0f0f0f;--chip-on-fg:#fff;--nav-height:60px;--head:56px;--side:72px;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f0f0f;--bg-card:#272727;--hover:#272727;--text-main:#f1f1f1;--text-muted:#aaa;--border:#303030;--chip-on-bg:#f1f1f1;--chip-on-fg:#0f0f0f;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0f0f0f;--bg-card:#272727;--hover:#272727;--text-main:#f1f1f1;--text-muted:#aaa;--border:#303030;--chip-on-bg:#f1f1f1;--chip-on-fg:#0f0f0f;color-scheme:dark}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+*{margin:0;padding:0;box-sizing:border-box;font-family:Roboto,-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif}
+body{background:var(--bg);color:var(--text-main);padding-bottom:calc(var(--nav-height) + 16px);overflow-x:hidden}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);background:var(--bg);z-index:101}
+.hidden{display:none!important}
+.btn-primary{background:var(--primary);color:#fff;border:none;padding:10px 20px;border-radius:20px;font-weight:600;cursor:pointer;transition:transform .2s}
+.btn-primary:active{transform:scale(.95)}
+.btn-primary:disabled{opacity:.6}
+.full-width{width:100%}
+.main-header{position:fixed;top:env(safe-area-inset-top,0px);left:0;right:0;height:var(--head);background:var(--bg);display:flex;align-items:center;justify-content:space-between;padding:0 12px;gap:8px;z-index:100}
+.hdr-left,.hdr-right{display:flex;align-items:center;gap:8px}
+.icon-btn{background:none;border:none;color:var(--text-main);width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.icon-btn:hover{background:var(--bg-card)}
+.icon-btn svg{width:22px;height:22px}
+.logo{display:flex;align-items:center;gap:4px;font-size:1.15rem;font-weight:700;letter-spacing:-.6px;cursor:pointer;white-space:nowrap}
+.logo svg{width:30px;height:21px}
+.search-container{flex:1;max-width:640px;display:flex;align-items:center;gap:8px;position:relative}
+.search-box{flex:1;display:flex;border:1px solid var(--border);border-radius:20px;overflow:hidden;background:var(--bg);min-width:0}
+.search-box:focus-within{border-color:#1c62b9}
+.search-box input{flex:1;min-width:0;height:38px;padding:0 16px;background:transparent;border:none;outline:none;color:var(--text-main);font-size:1rem}
+.search-btn{width:56px;background:var(--bg-card);border:none;border-left:1px solid var(--border);color:var(--text-main);cursor:pointer;display:flex;align-items:center;justify-content:center}
+.search-btn svg{width:20px;height:20px}
+.suggestions-dropdown{position:absolute;top:110%;left:0;right:48px;background:var(--bg);border:1px solid var(--border);border-radius:12px;overflow:hidden;z-index:110;box-shadow:0 4px 24px rgba(0,0,0,.25)}
+.suggestion-item{padding:10px 16px;cursor:pointer}
+.suggestion-item:hover{background:var(--bg-card)}
+.suggestion-item small{display:block;color:var(--text-muted);font-size:.8rem;margin-top:2px}
+.btn-create{background:var(--bg-card);border:none;color:var(--text-main);border-radius:20px;padding:0 16px;height:36px;display:flex;align-items:center;gap:6px;font-weight:500;cursor:pointer}
+.btn-create svg{width:20px;height:20px}
+.hdr-avatar{border:none;background:none;padding:0 4px;cursor:pointer}
+.hdr-avatar img{width:32px;height:32px;border-radius:50%;object-fit:cover;display:block;background:#333}
+.hdr-hide-m{display:none}
+.sidebar{display:none;position:fixed;top:calc(var(--head) + env(safe-area-inset-top,0px));left:0;bottom:0;width:var(--side);padding:4px;background:var(--bg);flex-direction:column;z-index:90}
+.nav-item{background:none;border:none;color:var(--text-main);display:flex;flex-direction:column;align-items:center;font-size:.72rem;gap:4px;cursor:pointer;flex:1}
+.nav-item svg{width:24px;height:24px}
+.nav-item.active span{font-weight:700}
+.side-item{flex:none;padding:16px 0 14px;font-size:.65rem;border-radius:10px}
+.side-item:hover{background:var(--bg-card)}
+.content-container{margin-top:var(--head);padding:0 12px}
+.chips{display:flex;gap:12px;overflow-x:auto;padding:12px 0;position:sticky;top:calc(var(--head) + env(safe-area-inset-top,0px));background:var(--bg);z-index:50;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{white-space:nowrap;border:none;background:var(--bg-card);color:var(--text-main);padding:0 12px;height:32px;border-radius:8px;font-size:.88rem;font-weight:500;cursor:pointer;flex-shrink:0}
+.chip.active{background:var(--chip-on-bg);color:var(--chip-on-fg)}
+#feedTitle{font-size:1.05rem;font-weight:500;margin:4px 0 8px}
+#feedTitle:empty{display:none}
+.video-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:24px 16px;margin-top:8px}
+.video-card{cursor:pointer;border-radius:12px;transition:background .15s,box-shadow .15s}
+@media(hover:hover){.video-card:hover{background:var(--hover);box-shadow:0 0 0 8px var(--hover)}}
+.thumbnail-wrapper{position:relative;aspect-ratio:16/9;border-radius:12px;overflow:hidden;background:#222}
+.thumbnail-wrapper img{width:100%;height:100%;object-fit:cover;display:block}
+.dur{position:absolute;right:8px;bottom:8px;background:rgba(0,0,0,.8);color:#fff;font-size:.75rem;font-weight:500;padding:2px 5px;border-radius:4px}
+.card-row{display:flex;gap:12px;padding-top:12px}
+.card-avatar{width:36px;height:36px;border-radius:50%;object-fit:cover;flex-shrink:0;background:#333}
+.card-info{flex:1;min-width:0}
+.card-title{font-size:1rem;font-weight:500;line-height:1.35;margin-bottom:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.card-channel,.card-metadata{font-size:.85rem;color:var(--text-muted);line-height:1.45}
+.card-caption{font-size:.8rem;color:var(--text-muted);margin-top:4px;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden}
+.more-btn{background:none;border:none;color:var(--text-main);cursor:pointer;width:32px;height:32px;border-radius:50%;flex-shrink:0;font-size:1.3rem;line-height:1}
+.more-btn:hover{background:var(--border)}
+.menu-pop{position:fixed;z-index:250;background:var(--bg-card);border-radius:12px;padding:8px 0;min-width:190px;box-shadow:0 4px 24px rgba(0,0,0,.3)}
+.menu-pop button{display:block;width:100%;text-align:left;background:none;border:none;color:var(--text-main);padding:10px 16px;cursor:pointer;font-size:.9rem}
+.menu-pop button:hover{background:var(--border)}
+.card-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:.78rem;color:var(--text-muted);margin-top:8px}
+.btn-del{background:none;border:1px solid var(--border);color:#e0294a;border-radius:14px;padding:3px 10px;font-size:.75rem;cursor:pointer;margin-top:8px}
+.player-section{margin:12px auto 24px;max-width:1000px}
+.player-wrapper{aspect-ratio:16/9;background:#000;border-radius:12px;overflow:hidden}
+.player-wrapper video{width:100%;height:100%}
+.video-details{padding:12px 0;border-bottom:1px solid var(--border)}
+.video-details h1{font-size:1.25rem;font-weight:600}
+.author-line{display:flex;align-items:center;gap:8px;margin-top:8px;color:var(--text-muted);font-size:.9rem}
+.avatar{width:96px;height:96px;border-radius:50%;object-fit:cover;background:#222;border:2px solid var(--border);display:block}
+.avatar.sm{width:28px;height:28px;border:none}
+.caption{margin-top:10px;font-size:.92rem;white-space:pre-wrap;background:var(--bg-card);border-radius:12px;padding:10px 12px}
+.caption:empty{display:none}
+.video-actions{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;margin-top:8px}
+.video-stats{color:var(--text-muted);font-size:.9rem}
+.action-buttons{display:flex;gap:8px;flex-wrap:wrap}
+.like-dislike-group{display:flex;background:var(--bg-card);border-radius:20px;overflow:hidden}
+.action-btn{background:none;border:none;color:var(--text-main);padding:8px 16px;display:flex;align-items:center;gap:6px;cursor:pointer;font-size:.9rem;font-weight:500}
+.action-btn.download{background:var(--bg-card);border-radius:20px}
+.action-btn:hover{filter:brightness(.95)}
+.action-btn svg{width:18px;height:18px}
+.action-btn.liked svg{color:var(--primary);fill:var(--primary);animation:pulse .3s}
+.action-btn.disliked svg{color:var(--text-muted);fill:var(--text-muted)}
+.action-btn.faved svg{color:#f5a800;fill:#f5a800}
+@keyframes pulse{50%{transform:scale(1.4)}}
+.ico{width:20px;height:20px;display:inline-block;flex-shrink:0;background:currentColor;-webkit-mask:var(--m) center/contain no-repeat;mask:var(--m) center/contain no-repeat}
+.ico-like{--m:url(data:image/png;base64,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)}
+.ico-dislike{--m:url(data:image/png;base64,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)}
+.action-btn.liked .ico-like{--m:url(data:image/png;base64,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);color:var(--primary);animation:pulse .3s}
+.action-btn.disliked .ico-dislike{--m:url(data:image/png;base64,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);color:var(--text-muted);animation:pulse .3s}
+
+.comments-section{padding:16px 0}
+.comment-input-block{display:flex;gap:12px;margin:16px 0}
+.comment-input-block input{flex:1;background:var(--bg);border:none;border-bottom:1px solid var(--border);padding:10px 4px;color:var(--text-main);outline:none}
+.comment-item{padding:12px 0}
+.comment-user{font-weight:600;font-size:.85rem;margin-bottom:4px}
+.comment-text{font-size:.9rem}
+.profile-head{display:flex;gap:18px;align-items:center;flex-wrap:wrap;margin:16px 0 18px}
+.avatar-wrap{position:relative;cursor:pointer;display:block}
+.avatar-edit{position:absolute;left:0;right:0;bottom:0;text-align:center;font-size:.7rem;color:#fff;background:rgba(0,0,0,.65);border-radius:0 0 48px 48px;padding:4px 0}
+.profile-info{flex:1;min-width:220px}
+.name-row{display:flex;gap:8px;margin-bottom:8px}
+.name-row input{flex:1;background:var(--bg);border:1px solid var(--border);padding:10px 14px;border-radius:20px;color:var(--text-main);outline:none}
+.profile-stats,.mode-note{color:var(--text-muted);font-size:.85rem}
+.mode-note{margin-top:4px;font-size:.75rem}
+.tabs{display:flex;gap:8px;border-bottom:1px solid var(--border);margin-bottom:6px}
+.tab{background:none;border:none;color:var(--text-muted);padding:10px 16px;cursor:pointer;font-weight:600;border-bottom:2px solid transparent}
+.tab.active{color:var(--text-main);border-bottom-color:var(--text-main)}
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;height:calc(var(--nav-height) + env(safe-area-inset-bottom,0px));padding-bottom:env(safe-area-inset-bottom,0px);background:var(--bg);border-top:1px solid var(--border);display:flex;justify-content:space-around;align-items:center;z-index:100;transition:transform .3s cubic-bezier(.4,0,.2,1);will-change:transform}
+.bottom-nav.nav-hidden{transform:translateY(100%)}
+.shimmer-card{aspect-ratio:16/10;background:linear-gradient(90deg,var(--bg-card) 25%,var(--border) 50%,var(--bg-card) 75%);background-size:200% 100%;animation:sh 1.5s infinite;border-radius:12px}
+@keyframes sh{0%{background-position:200% 0}100%{background-position:-200% 0}}
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;align-items:center;justify-content:center;z-index:200;padding:16px}
+.modal-content{background:var(--bg);border:1px solid var(--border);padding:24px;border-radius:16px;width:100%;max-width:450px;max-height:90vh;overflow-y:auto}
+.modal-header{display:flex;justify-content:space-between;margin-bottom:16px}
+.close-btn{background:none;border:none;color:var(--text-main);font-size:1.5rem;cursor:pointer}
+.form-group{margin-bottom:14px}
+.form-group label{display:block;margin-bottom:6px;font-size:.85rem;color:var(--text-muted)}
+.form-group input,.form-group textarea{width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);color:var(--text-main);border-radius:8px;outline:none}
+.form-group textarea{resize:vertical;min-height:70px}
+.toast{position:fixed;left:50%;bottom:90px;transform:translateX(-50%);background:#323232;color:#fff;padding:10px 18px;border-radius:8px;z-index:300;font-size:.9rem}
+.btn-follow,.btn-sec{border:none;border-radius:18px;padding:6px 14px;font-weight:600;cursor:pointer;background:var(--text-main);color:var(--bg);font-size:.85rem}
+.btn-sec{background:var(--bg-card);color:var(--text-main);padding:10px 20px}
+[data-user]{cursor:pointer}
+#profName{font-size:1.4rem;font-weight:600;margin-bottom:8px}
+.dm{display:grid;grid-template-columns:280px 1fr;gap:12px;height:calc(100vh - 170px);min-height:380px;margin-top:12px}
+.dm-list{overflow-y:auto;border:1px solid var(--border);border-radius:12px}
+.dm-item{display:flex;gap:10px;align-items:center;padding:10px 12px;cursor:pointer}
+.dm-item:hover,.dm-item.active{background:var(--bg-card)}
+.dm-item small{display:block;color:var(--text-muted);font-size:.75rem}
+.dm-chat{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:12px;min-width:0}
+.dm-head{padding:10px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px}
+.dm-back{display:none}
+.dm-msgs{flex:1;overflow-y:auto;padding:12px;display:flex;flex-direction:column;gap:6px}
+.bubble{max-width:75%;align-self:flex-start;background:var(--bg-card);padding:8px 12px;border-radius:14px;font-size:.92rem;word-break:break-word}
+.bubble.me{align-self:flex-end;background:var(--primary);color:#fff}
+.bubble small{display:block;font-size:.65rem;opacity:.7;margin-top:2px}
+.dm-form{display:flex;gap:8px;padding:10px;border-top:1px solid var(--border)}
+.dm-form input{flex:1;background:var(--bg);border:1px solid var(--border);border-radius:20px;padding:10px 14px;color:var(--text-main);outline:none}
+@media(max-width:767px){.dm{grid-template-columns:1fr;height:calc(100vh - 210px)}.dm .dm-chat{display:none}.dm.chat-open .dm-list{display:none}.dm.chat-open .dm-chat{display:flex}.dm-back{display:inline-flex}}
+@media(min-width:768px){
+  .hdr-hide-m{display:flex}
+  .sidebar{display:flex}
+  .bottom-nav{display:none}
+  body{padding-bottom:24px}
+  .content-container{margin-left:var(--side);padding:0 24px}
+  body.side-hidden .sidebar{display:none}
+  body.side-hidden .content-container{margin-left:0}
+  .main-header{padding:0 16px}
+}
+</style>
+</head>
+<body>
+<header class="main-header">
+  <div class="hdr-left">
+    <button class="icon-btn hdr-hide-m" id="menuBtn" aria-label="Menu"><i data-lucide="menu"></i></button>
+    <div class="logo" id="logoBtn"><svg viewBox="0 0 30 21"><rect width="30" height="21" rx="6" fill="#ff0033"/><path d="M12 6l7 4.5-7 4.5z" fill="#fff"/></svg><span>VX zaraki</span></div>
+  </div>
+  <div class="search-container">
+    <div class="search-box">
+      <input type="text" id="searchInput" placeholder="Pesquisar por legenda..." autocomplete="off">
+      <button class="search-btn" id="searchBtn" aria-label="Pesquisar"><i data-lucide="search"></i></button>
+    </div>
+    <button class="icon-btn hdr-hide-m" id="micBtn" aria-label="Pesquisa por voz" style="background:var(--bg-card)"><i data-lucide="mic"></i></button>
+    <div id="searchSuggestions" class="suggestions-dropdown hidden"></div>
+  </div>
+  <div class="hdr-right">
+    <button class="btn-create hdr-hide-m" id="createBtn"><i data-lucide="plus"></i><span>Criar</span></button>
+    <button class="icon-btn hdr-hide-m" id="bellBtn" aria-label="Notificações"><i data-lucide="bell"></i></button>
+    <button class="hdr-avatar" id="hdrAvatar" aria-label="Minha conta"><img alt=""></button>
+  </div>
+</header>
+<aside class="sidebar" id="sidebar"></aside>
+
+<main class="content-container">
+  <section id="videoPlayerSection" class="player-section hidden">
+    <div class="player-wrapper"><video id="mainVideo" controls playsinline></video></div>
+    <div class="video-details">
+      <h1 id="playerTitle"></h1>
+      <div class="author-line" id="authorLine"></div>
+      <div class="video-actions">
+        <div class="video-stats"><span id="playerViews"></span> • <span id="playerDate"></span></div>
+        <div class="action-buttons">
+          <div class="like-dislike-group">
+            <button id="likeBtn" class="action-btn"><i class="ico ico-like"></i><span id="likeCount">0</span></button>
+            <button id="dislikeBtn" class="action-btn"><i class="ico ico-dislike"></i></button>
+          </div>
+          <button id="favBtn" class="action-btn download"><i data-lucide="star"></i><span>Favoritar</span></button>
+          <button id="downloadBtn" class="action-btn download"><i data-lucide="download"></i><span>Baixar</span></button>
+        </div>
+      </div>
+      <p class="caption" id="playerCaption"></p>
+    </div>
+    <div class="comments-section">
+      <h3>Comentários</h3>
+      <form id="commentForm" class="comment-input-block">
+        <input type="text" id="commentInput" placeholder="Adicione um comentário público..." required>
+        <button type="submit" class="btn-primary">Comentar</button>
+      </form>
+      <div id="commentsList"></div>
+    </div>
+  </section>
+
+  <section id="accountSection" class="hidden">
+    <div class="profile-head">
+      <label class="avatar-wrap"><img id="avatarImg" class="avatar" alt="Foto de perfil"><span class="avatar-edit">Trocar foto</span><input type="file" id="avatarInput" accept="image/*" hidden></label>
+      <div class="profile-info">
+        <div class="name-row" id="nameRow"><input id="nameInput" maxlength="30" placeholder="Seu nome"><button id="saveName" class="btn-primary">Salvar</button></div>
+        <h2 id="profName" class="hidden"></h2>
+        <div class="name-row" id="profActions"></div>
+        <div class="profile-stats" id="profileStats"></div>
+        <div class="mode-note" id="modeNote"></div>
+      </div>
+    </div>
+    <div class="tabs"><button class="tab active" data-tab="mine">Meus vídeos</button><button class="tab" id="favTab" data-tab="favs">Favoritos</button></div>
+    <div id="accountGrid" class="video-grid"></div>
+  </section>
+
+  <section id="msgSection" class="hidden">
+    <div class="dm" id="dm">
+      <div class="dm-list" id="dmList"></div>
+      <div class="dm-chat">
+        <div class="dm-head" id="dmHead"><button class="icon-btn dm-back" id="dmBack" aria-label="Voltar">←</button><b id="dmWith"></b></div>
+        <div class="dm-msgs" id="dmMsgs"></div>
+        <form class="dm-form" id="dmForm"><input id="dmInput" placeholder="Escreva uma mensagem..." autocomplete="off"><button class="btn-primary">Enviar</button></form>
+      </div>
+    </div>
+    <p class="mode-note" id="dmNote"></p>
+  </section>
+
+  <section class="feed-section">
+    <div class="chips" id="chips"></div>
+    <h2 id="feedTitle">Vídeos Recomendados</h2>
+    <div id="videoGrid" class="video-grid">
+      <div class="shimmer-card"></div><div class="shimmer-card"></div><div class="shimmer-card"></div><div class="shimmer-card"></div>
+    </div>
+  </section>
+</main>
+
+<div id="uploadModal" class="modal hidden">
+  <div class="modal-content">
+    <div class="modal-header"><h2>Enviar Vídeo</h2><button id="closeUploadBtn" class="close-btn">&times;</button></div>
+    <form id="uploadForm">
+      <div class="form-group"><label for="videoTitle">Título do Vídeo</label><input type="text" id="videoTitle" required placeholder="Ex: Melhores momentos Zaraki"></div>
+      <div class="form-group"><label for="videoCaption">Legenda (descrição e #hashtags — usada na pesquisa)</label><textarea id="videoCaption" maxlength="500" placeholder="Ex: Luta épica do Zaraki contra Ichigo #bleach #amv"></textarea></div>
+      <div class="form-group" id="fileGroup"><label for="videoFile">Arquivo de vídeo (até 50 MB)</label><input type="file" id="videoFile" accept="video/*"></div>
+      <div class="form-group"><label for="videoUrl">ou URL do Vídeo (MP4)</label><input type="url" id="videoUrl" placeholder="https://exemplo.com/video.mp4"></div>
+      <div class="form-group"><label for="thumbUrl">URL da Thumbnail (opcional)</label><input type="url" id="thumbUrl" placeholder="https://exemplo.com/thumb.jpg"></div>
+      <button type="submit" class="btn-primary full-width">Postar Vídeo</button>
+    </form>
+  </div>
+</div>
+
+<div id="loginModal" class="modal hidden"><div class="modal-content">
+  <div class="modal-header"><h2>Entrar</h2><button id="closeLogin" class="close-btn">&times;</button></div>
+  <form id="loginForm"><div class="form-group"><label for="loginEmail">Seu e-mail (enviaremos um link de acesso)</label><input type="email" id="loginEmail" required autocomplete="email"></div>
+  <button type="submit" class="btn-primary full-width">Enviar link</button></form>
+</div></div>
+
+<nav class="bottom-nav" id="bottomNav"></nav>
+
+<script>
+const BASE = "https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/";
+function thumbSvg(t, c){
+  return "data:image/svg+xml;utf8," + encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 320 180"><defs><linearGradient id="g" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="${c}"/><stop offset="1" stop-color="#0a0a0a"/></linearGradient></defs><rect width="320" height="180" fill="url(#g)"/><text x="160" y="100" font-family="sans-serif" font-size="48" font-weight="800" fill="#fff" text-anchor="middle">${t}</text></svg>`);
+}
+const DEFAULT_VIDEOS = [
+  {id:"1",title:"Zaraki Kenpachi AMV - O Despertar do Demônio [4K]",url:BASE+"BigBuckBunny.mp4",thumb:thumbSvg("VX","#ff0033"),views:142000,baseLikes:12500,date:"há 2 dias"},
+  {id:"2",title:"VX zaraki Nova Atualização De Combate Fluid CSS",url:BASE+"ElephantsDream.mp4",thumb:thumbSvg("CSS","#7a1fff"),views:89000,baseLikes:7200,date:"há 5 dias"},
+  {id:"3",title:"Como criar layouts Fluidos e Rápidos para Dispositivos Móveis",url:BASE+"Sintel.mp4",thumb:thumbSvg("UI","#0077ff"),views:5300,baseLikes:410,date:"há 10 horas"}
+];
+DEFAULT_VIDEOS[0].caption = "Zaraki Kenpachi em ação: luta, espada e muita adrenalina. #bleach #anime #amv";
+DEFAULT_VIDEOS[1].caption = "Novidades do VX zaraki: combate fluido, animações suaves e CSS moderno. #css #dev";
+DEFAULT_VIDEOS[2].caption = "Tutorial de layouts rápidos e responsivos para celular. #mobile #design #tutorial";
+DEFAULT_VIDEOS[0].duration = 596; DEFAULT_VIDEOS[1].duration = 654; DEFAULT_VIDEOS[2].duration = 888;
+const $ = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function load(k, f){ try{ return JSON.parse(localStorage.getItem(k)) || f; }catch(e){ return f; } }
+function store(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function toast(m){ const t=document.createElement('div'); t.className='toast'; t.textContent=m; document.body.appendChild(t); setTimeout(()=>t.remove(),2800); }
+const icons = () => { if (window.lucide) lucide.createIcons(); };
+const fmt = n => n >= 1000 ? (n/1000).toFixed(1) + 'K' : n;
+function rel(ts){
+  const m = Math.floor((Date.now() - ts) / 60000);
+  if (m < 1) return "agora mesmo"; if (m < 60) return `há ${m} min`;
+  const h = Math.floor(m/60); if (h < 24) return `há ${h} h`;
+  return `há ${Math.floor(h/24)} dias`;
+}
+
+// ===== CAMADA DE DADOS: compartilhada (db) ou local (localStorage) =====
+let mode = 'local', uid = 'local', DB = null, ASSETS = null;
+let S = { videos: load('vx_videos', DEFAULT_VIDEOS), reactions: load('vx_reactions2', []), comments: load('vx_comments2', []), favs: load('vx_favs', []), profiles: load('vx_profiles', {}) };
+let currentVideoId = null, viewUid = null, chatPeer = null;
+S.follows = {}; S.dmIn = []; S.dmOut = [];
+const saveLocal = () => { store('vx_videos', S.videos); store('vx_reactions2', S.reactions); store('vx_comments2', S.comments); store('vx_favs', S.favs); store('vx_profiles', S.profiles); };
+const errToast = e => { if (mode === 'db' && uid === 'anon') return openLogin(); toast("Erro: " + ((e && e.message) || "falha ao gravar")); };
+
+function likesOf(v){ return (v.baseLikes||0) + S.reactions.filter(r => r.videoId===v.id && r.type==='like').length; }
+function myReaction(id){ const r = S.reactions.find(r => r.videoId===id && r.uid===uid); return r && r.type; }
+
+
+const norm = s => String(s||'').normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+const myProfile = () => S.profiles[uid] || {};
+const nameOf = id => (S.profiles[id] && S.profiles[id].name) || (id==='vx' ? 'VX zaraki' : id==='local' ? 'Você' : 'Usuário ' + String(id).slice(0,4));
+function avatarOf(id){
+  const p = S.profiles[id]; if (p && p.photo) return p.photo;
+  const l = esc((nameOf(id)[0]||'?').toUpperCase());
+  return "data:image/svg+xml;utf8," + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><rect width="96" height="96" fill="#2c2c2c"/><text x="48" y="64" font-family="sans-serif" font-size="46" font-weight="700" fill="#fff" text-anchor="middle">${l}</text></svg>`);
+}
+const isFav = id => S.favs.some(f => f.videoId===id && f.uid===uid);
+function searchVideos(q){
+  const terms = norm(q).split(/\s+/).filter(Boolean);
+  const all = S.videos.map(v => ({v, c:norm(v.caption), t:norm(v.title)}));
+  if (!terms.length) return all.map(x => x.v).sort((a,b) => (b.views||0)-(a.views||0));
+  return all.map(x => { let sc = 0;
+      for (const w of terms){ const c = x.c.includes(w), t = x.t.includes(w); if (!c && !t) return null; sc += (c?3:0) + (t?1:0); }
+      return {v:x.v, sc}; })
+    .filter(Boolean).sort((a,b) => b.sc-a.sc || (b.v.views||0)-(a.v.views||0)).map(x => x.v);
+}
+const snip = v => { const c = v.caption || ''; return c.length > 70 ? c.slice(0,70) + '…' : c; };
+function saveProfile(patch){
+  const m = {...myProfile(), ...patch};
+  if (mode==='db') return DB.collection('profiles').doc(uid).set(m).catch(errToast);
+  S.profiles[uid] = m; saveLocal(); refresh();
+}
+function toggleFav(videoId){
+  const id = videoId + '__' + uid, on = isFav(videoId);
+  if (mode==='db'){ const ref = DB.collection('favorites').doc(id); return (on ? ref.delete() : ref.set({videoId, uid})).catch(errToast); }
+  S.favs = S.favs.filter(f => !(f.videoId===videoId && f.uid===uid)); if (!on) S.favs.push({id, videoId, uid});
+  saveLocal(); refresh();
+}
+function deleteVideo(id){
+  if (mode==='db') return DB.collection('videos').doc(id).delete().catch(errToast);
+  S.videos = S.videos.filter(v => v.id !== id); saveLocal(); refresh();
+}
+function resizeImg(file, size=160){
+  return new Promise((res, rej) => {
+    const img = new Image(), u = URL.createObjectURL(file);
+    img.onload = () => { const c = document.createElement('canvas'); c.width = c.height = size; const m = Math.min(img.width, img.height);
+      c.getContext('2d').drawImage(img, (img.width-m)/2, (img.height-m)/2, m, m, 0, 0, size, size); URL.revokeObjectURL(u); res(c.toDataURL('image/jpeg', .8)); };
+    img.onerror = () => rej(new Error('imagem inválida')); img.src = u;
+  });
+}
+
+
+const social = () => mode === 'db' && uid !== 'anon' && uid !== 'local';
+const myFollows = () => S.follows[uid] || [];
+const isFollowing = id => myFollows().includes(id);
+const followersOf = id => Object.keys(S.follows).filter(u => (S.follows[u] || []).includes(id));
+const isFriend = id => isFollowing(id) && (S.follows[id] || []).includes(uid);
+const allDm = () => [...S.dmIn, ...S.dmOut].sort((a,b) => (a.ts||0) - (b.ts||0));
+function toggleFollow(id){
+  if (!social()) return toast('Entre pela conta compartilhada para seguir pessoas.');
+  if (id === uid) return;
+  const next = isFollowing(id) ? myFollows().filter(x => x !== id) : [...myFollows(), id];
+  DB.collection('follows').doc(uid).set({to: next}).catch(errToast);
+}
+function openProfile(id){ if (!id) return; viewUid = id; accTab = 'mine'; setView('account'); }
+function openChat(id){ chatPeer = id; setView('messages'); }
+
+// ---- Criptografia ponta a ponta (ECDH P-256 + AES-GCM) ----
+const ECA = {name:'ECDH', namedCurve:'P-256'};
+let myPriv = null, keysReady = false; const aesCache = {}, plainCache = new Map();
+const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+const unb64 = t => Uint8Array.from(atob(t), c => c.charCodeAt(0));
+async function initKeys(){
+  try{
+    if (!(window.crypto && crypto.subtle)) return;
+    const ref = DB.collection('data/users/' + uid).doc('e2e'), pref = DB.collection('profiles').doc(uid);
+    const [d, pd] = await Promise.all([ref.get(), pref.get()]);
+    const prof = pd.exists ? pd.data() : {};
+    let priv = d.exists ? d.data().priv : null;
+    if (!priv){
+      const kp = await crypto.subtle.generateKey(ECA, true, ['deriveKey']);
+      priv = await crypto.subtle.exportKey('jwk', kp.privateKey);
+      await ref.set({priv}); delete prof.pub;
+    }
+    if (!prof.pub) await pref.set({...prof, pub: {kty: priv.kty, crv: priv.crv, x: priv.x, y: priv.y, ext: true}});
+    myPriv = await crypto.subtle.importKey('jwk', priv, ECA, false, ['deriveKey']); keysReady = true;
+  }catch(e){ keysReady = false; }
+}
+async function aesFor(peer){
+  const pj = (S.profiles[peer] || {}).pub; if (!pj || !myPriv) return null;
+  const sig = JSON.stringify(pj); if (aesCache[peer] && aesCache[peer].sig === sig) return aesCache[peer].k;
+  const pk = await crypto.subtle.importKey('jwk', pj, ECA, false, []);
+  const k = await crypto.subtle.deriveKey({name:'ECDH', public: pk}, myPriv, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']);
+  aesCache[peer] = {sig, k}; return k;
+}
+async function sendDm(peer, text){
+  const k = await aesFor(peer).catch(() => null);
+  if (!k) return toast('Não foi possível cifrar: esse usuário ainda não ativou mensagens.');
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const ct = await crypto.subtle.encrypt({name:'AES-GCM', iv}, k, new TextEncoder().encode(text));
+  DB.collection('dm').add({from: uid, to: peer, iv: b64(iv), ct: b64(ct), ts: Date.now()}).catch(errToast);
+}
+async function readDm(m){
+  if (plainCache.has(m.id)) return plainCache.get(m.id);
+  const peer = m.from === uid ? m.to : m.from;
+  try{ const k = await aesFor(peer);
+    if (k){ const t = new TextDecoder().decode(await crypto.subtle.decrypt({name:'AES-GCM', iv: unb64(m.iv)}, k, unb64(m.ct))); plainCache.set(m.id, t); return t; } }catch(_){}
+  return '🔒 Não foi possível decifrar';
+}
+async function renderDm(){
+  const dl = $('dmList');
+  if (!social()){ dl.innerHTML = ''; $('dmMsgs').innerHTML = ''; $('dmHead').classList.add('hidden'); $('dmForm').classList.add('hidden'); $('dmNote').textContent = 'Mensagens e amizades exigem a conta compartilhada (abra o link logado no claude.ai).'; return; }
+  $('dmNote').textContent = keysReady ? '🔒 Cifradas de ponta a ponta: só você e o destinatário leem o conteúdo. Quem administra o banco vê apenas quem conversa com quem e quando.' : 'Ativando criptografia…';
+  const all = allDm(), last = {};
+  all.forEach(m => { const p = m.from === uid ? m.to : m.from; last[p] = Math.max(last[p]||0, m.ts||0); });
+  const ids = [...new Set([...myFollows(), ...Object.keys(last)])].sort((a,b) => (last[b]||0) - (last[a]||0));
+  dl.innerHTML = ids.length ? ids.map(id => `<div class="dm-item ${id===chatPeer ? 'active' : ''}" data-id="${esc(id)}"><img class="card-avatar" src="${esc(avatarOf(id))}" alt=""><div><b>${esc(nameOf(id))}</b><small>${isFriend(id) ? 'Amigo' : isFollowing(id) ? 'Seguindo' : 'Conversa'}</small></div></div>`).join('')
+    : '<p class="mode-note" style="padding:12px">Siga alguém para conversar: toque no nome de um canal para abrir o perfil.</p>';
+  dl.querySelectorAll('.dm-item').forEach(el => el.onclick = () => openChat(el.dataset.id));
+  $('dm').classList.toggle('chat-open', !!chatPeer);
+  $('dmHead').classList.toggle('hidden', !chatPeer); $('dmForm').classList.toggle('hidden', !chatPeer);
+  if (!chatPeer){ $('dmMsgs').innerHTML = ''; return; }
+  $('dmWith').textContent = nameOf(chatPeer);
+  const msgs = all.filter(m => (m.from === uid && m.to === chatPeer) || (m.from === chatPeer && m.to === uid));
+  const texts = await Promise.all(msgs.map(readDm));
+  const box = $('dmMsgs');
+  box.innerHTML = msgs.length ? msgs.map((m,i) => `<div class="bubble ${m.from===uid ? 'me' : ''}">${esc(texts[i])}<small>${new Date(m.ts||Date.now()).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</small></div>`).join('') : '<p class="mode-note">Nenhuma mensagem ainda. Diga olá!</p>';
+  box.scrollTop = box.scrollHeight;
+}
+$('dmForm').addEventListener('submit', e => { e.preventDefault(); const i = $('dmInput'), t = i.value.trim(); if (!t || !chatPeer) return; i.value = ''; sendDm(chatPeer, t); });
+$('dmBack').addEventListener('click', () => { chatPeer = null; renderDm(); });
+
+function addVideo(v){
+  if (mode==='db') return DB.collection('videos').doc(v.id).set(v).catch(errToast);
+  S.videos.unshift(v); saveLocal(); refresh();
+}
+function bumpView(v){
+  if (mode==='db'){ DB.collection('videos').doc(v.id).update({views:(v.views||0)+1}).catch(()=>{}); }
+  else { v.views++; saveLocal(); }
+}
+function setReaction(videoId, type){
+  const id = videoId + '__' + uid;
+  if (mode==='db'){
+    const ref = DB.collection('reactions').doc(id);
+    return (type ? ref.set({videoId, uid, type}) : ref.delete()).catch(errToast);
+  }
+  S.reactions = S.reactions.filter(r => !(r.videoId===videoId && r.uid===uid));
+  if (type) S.reactions.push({id, videoId, uid, type});
+  saveLocal(); refresh();
+}
+function addComment(videoId, text){
+  const c = {videoId, text, uid, ts: Date.now()};
+  if (mode==='db') return DB.collection('comments').add(c).catch(errToast);
+  S.comments.push(c); saveLocal(); refresh();
+}
+
+let view = 'home';
+function setView(v){
+  view = v;
+  $('videoPlayerSection').classList.toggle('hidden', v !== 'player');
+  $('accountSection').classList.toggle('hidden', v !== 'account');
+  $('msgSection').classList.toggle('hidden', v !== 'messages');
+  document.querySelector('.feed-section').classList.toggle('hidden', v === 'account' || v === 'messages');
+  setActive(v === 'messages' ? 'msgs' : v === 'account' ? ((viewUid && viewUid !== uid) ? '' : accTab === 'favs' ? 'favs' : 'account') : 'home');
+  if (v !== 'player') $('mainVideo').pause();
+  if (v === 'account') renderAccount();
+  if (v === 'messages') renderDm();
+  window.scrollTo({top:0});
+}
+function refresh(){
+  $('hdrAvatar').firstElementChild.src = avatarOf(uid);
+  renderFeed($('searchInput').value);
+  if (view === 'account') renderAccount();
+  if (view === 'messages') renderDm();
+  if (currentVideoId){ updateReactionUI(); updatePlayerMeta(); renderComments();
+    const v = S.videos.find(x => x.id === currentVideoId); if (v) $('playerViews').textContent = `${fmt(v.views||0)} visualizações`; }
+}
+function updatePlayerMeta(){
+  const v = S.videos.find(x => x.id === currentVideoId); if (!v) return;
+  $('authorLine').innerHTML = v.author ? `<img class="avatar sm" data-user="${esc(v.author)}" src="${esc(avatarOf(v.author))}" alt=""><span data-user="${esc(v.author)}">${esc(nameOf(v.author))}</span>${social() && v.author !== uid ? `<button class="btn-follow" data-follow="${esc(v.author)}">${isFollowing(v.author) ? 'Seguindo ✓' : 'Seguir'}</button>` : ''}` : `<span>VX zaraki</span>`;
+  $('playerCaption').textContent = v.caption || '';
+  $('favBtn').classList.toggle('faved', isFav(v.id));
+  $('favBtn').querySelector('span').textContent = isFav(v.id) ? 'Favoritado' : 'Favoritar';
+}
+$('favBtn').addEventListener('click', () => { if (currentVideoId) toggleFav(currentVideoId); });
+$('authorLine').addEventListener('click', e => { const u = e.target.closest('[data-user]'); if (u) return openProfile(u.dataset.user); const f = e.target.closest('[data-follow]'); if (f) toggleFollow(f.dataset.follow); });
+
+// ===== FEED =====
+function fmtDur(s){ s = Math.round(s||0); if (!s) return ''; const h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60; return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); }
+let menuEl = null;
+function closeMenu(){ if (menuEl){ menuEl.remove(); menuEl = null; } }
+function showMenu(btn, v){
+  closeMenu(); const r = btn.getBoundingClientRect();
+  menuEl = document.createElement('div'); menuEl.className = 'menu-pop';
+  menuEl.innerHTML = `<button data-a="fav">${isFav(v.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</button><button data-a="copy">Copiar link</button>`;
+  menuEl.style.top = Math.min(r.bottom, innerHeight - 110) + 'px'; menuEl.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + 'px';
+  menuEl.addEventListener('click', e => { e.stopPropagation(); const a = e.target.dataset.a;
+    if (a === 'fav') toggleFav(v.id);
+    if (a === 'copy') navigator.clipboard.writeText(location.href.split('#')[0]).then(() => toast('Link copiado!')).catch(() => toast('Não foi possível copiar'));
+    closeMenu(); });
+  document.body.appendChild(menuEl);
+}
+document.addEventListener('click', closeMenu);
+function makeCard(v, stats){
+  const card = document.createElement('div'); card.className = 'video-card';
+  const nc = S.comments.filter(c => c.videoId===v.id).length, nf = S.favs.filter(f => f.videoId===v.id).length, a = v.author || 'vx';
+  card.innerHTML = `<div class="thumbnail-wrapper"><img src="${esc(v.thumb||thumbSvg('▶','#ff0033'))}" alt="${esc(v.title)}" loading="lazy">${v.duration ? `<span class="dur">${fmtDur(v.duration)}</span>` : ''}</div>
+    <div class="card-row"><img class="card-avatar" src="${esc(avatarOf(a))}" alt="">
+    <div class="card-info"><h3 class="card-title">${esc(v.title)}</h3>
+    <div class="card-channel">${esc(nameOf(a))}</div>
+    <div class="card-metadata">${fmt(v.views||0)} visualizações • ${esc(v.date || rel(v.ts||Date.now()))}</div>
+    ${v.caption ? `<div class="card-caption">${esc(snip(v))}</div>` : ''}
+    ${stats ? `<div class="card-stats"><span>▶ ${fmt(v.views||0)}</span><span>👍 ${fmt(likesOf(v))}</span><span>💬 ${nc}</span><span>★ ${nf}</span></div><button class="btn-del">Excluir</button>` : ''}</div>
+    <button class="more-btn" aria-label="Mais opções">⋮</button></div>`;
+  card.addEventListener('click', () => playVideo(v.id));
+  card.querySelector('.more-btn').addEventListener('click', e => { e.stopPropagation(); showMenu(e.currentTarget, v); });
+  if (v.author) card.querySelectorAll('.card-avatar,.card-channel').forEach(el => { el.style.cursor = 'pointer'; el.addEventListener('click', e => { e.stopPropagation(); openProfile(v.author); }); });
+  const del = card.querySelector('.btn-del');
+  if (del) del.addEventListener('click', e => {
+    e.stopPropagation();
+    if (del.dataset.ok){ deleteVideo(v.id); } else { del.dataset.ok = 1; del.textContent = 'Confirmar exclusão?'; setTimeout(() => { del.dataset.ok = ''; del.textContent = 'Excluir'; }, 3000); }
+  });
+  return card;
+}
+function renderChips(q){
+  const cnt = {};
+  S.videos.forEach(v => (String(v.caption||'').match(/#[\p{L}\p{N}_]+/gu) || []).forEach(t => { t = t.toLowerCase(); cnt[t] = (cnt[t]||0) + 1; }));
+  const tags = Object.entries(cnt).sort((a,b) => b[1]-a[1]).slice(0,14).map(x => x[0]);
+  const cur = String(q||'').trim().toLowerCase();
+  $('chips').innerHTML = `<button class="chip ${!cur ? 'active' : ''}" data-t="">Todos</button>` + tags.map(t => `<button class="chip ${cur===t ? 'active' : ''}" data-t="${esc(t)}">${esc(t)}</button>`).join('');
+  $('chips').querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => { $('searchInput').value = c.dataset.t; sug.classList.add('hidden'); renderFeed(c.dataset.t); }));
+}
+function renderFeed(q = ""){
+  const grid = $('videoGrid'); grid.innerHTML = "";
+  const list = searchVideos(q);
+  $('feedTitle').textContent = q.trim() ? `Resultados para "${q.trim()}"` : ""; renderChips(q);
+  if (!list.length){
+    grid.innerHTML = `<p style="color:var(--text-muted);padding:20px">${q.trim() ? "Nenhum vídeo com essa legenda." : "Nenhum vídeo ainda. Toque em Partilhar para enviar o primeiro!"}</p>`;
+    return;
+  }
+  list.forEach(v => grid.appendChild(makeCard(v, false)));
+}
+
+// ===== CONTA =====
+let accTab = 'mine';
+function renderAccount(){
+  const pv = viewUid || uid, me = pv === uid;
+  $('avatarImg').src = avatarOf(pv);
+  $('avatarInput').disabled = !me; document.querySelector('.avatar-edit').classList.toggle('hidden', !me);
+  $('nameRow').classList.toggle('hidden', !me); $('profName').classList.toggle('hidden', me); $('profName').textContent = nameOf(pv);
+  $('favTab').classList.toggle('hidden', !me); if (!me) accTab = 'mine';
+  document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x.dataset.tab === accTab));
+  if (me && document.activeElement !== $('nameInput')) $('nameInput').value = myProfile().name || '';
+  const mine = S.videos.filter(v => v.author === pv);
+  const views = mine.reduce((a,v) => a + (v.views||0), 0), likes = mine.reduce((a,v) => a + likesOf(v), 0);
+  $('profileStats').textContent = `${mine.length} vídeos • ${fmt(views)} visualizações • ${fmt(likes)} likes` + (social() ? ` • ${followersOf(pv).length} seguidores • ${(S.follows[pv]||[]).length} seguindo` : '');
+  $('modeNote').textContent = me ? (mode==='db' ? 'Conta sincronizada · ID ' + String(uid).slice(0,6) : 'Modo local: seus dados ficam só neste navegador.') : (isFriend(pv) ? 'Vocês são amigos (se seguem).' : '');
+  const pa = $('profActions'); pa.innerHTML = '';
+  if (!me && social()){
+    pa.innerHTML = `<button class="btn-primary" id="pFollow">${isFollowing(pv) ? 'Seguindo ✓' : 'Seguir'}</button><button class="btn-sec" id="pMsg">Mensagem</button>`;
+    $('pFollow').onclick = () => toggleFollow(pv); $('pMsg').onclick = () => openChat(pv);
+  }
+  if (me && mode === 'db'){ pa.innerHTML = uid === 'anon' ? '<button class="btn-primary" id="pIn">Entrar</button>' : '<button class="btn-sec" id="pOut">Sair</button>'; if (uid === 'anon') $('pIn').onclick = openLogin; else $('pOut').onclick = () => SB.auth.signOut(); }
+  const favIds = S.favs.filter(f => f.uid === uid).map(f => f.videoId);
+  const list = accTab === 'mine' ? mine : S.videos.filter(v => favIds.includes(v.id));
+  const g = $('accountGrid'); g.innerHTML = '';
+  if (!list.length){ g.innerHTML = `<p style="color:var(--text-muted);padding:20px">${accTab==='mine' ? (me ? 'Você ainda não postou vídeos. Toque em Partilhar.' : 'Nenhum vídeo postado.') : 'Nenhum favorito ainda. Toque em ★ Favoritar em um vídeo.'}</p>`; return; }
+  list.forEach(v => g.appendChild(makeCard(v, me && accTab === 'mine')));
+}
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => {
+  accTab = t.dataset.tab; document.querySelectorAll('.tab').forEach(x => x.classList.toggle('active', x === t)); renderAccount();
+}));
+$('saveName').addEventListener('click', () => { saveProfile({name: $('nameInput').value.trim()}); toast('Perfil salvo'); });
+$('avatarInput').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try{ saveProfile({photo: await resizeImg(f)}); toast('Foto atualizada'); }catch(err){ toast('Não foi possível usar essa imagem.'); }
+  e.target.value = '';
+});
+
+let lastY = window.scrollY;
+window.addEventListener('scroll', () => {
+  if (Math.abs(window.scrollY - lastY) < 10) return;
+  $('bottomNav').classList.toggle('nav-hidden', window.scrollY > lastY && window.scrollY > 80);
+  lastY = window.scrollY;
+});
+
+// ===== PLAYER =====
+function playVideo(id){
+  const v = S.videos.find(x => x.id === id); if (!v) return;
+  currentVideoId = id;
+  setView('player');
+  const mv = $('mainVideo'); mv.src = v.url; mv.poster = v.thumb || "";
+  mv.play().catch(()=>{});
+  $('playerTitle').textContent = v.title;
+  $('playerDate').textContent = v.date || rel(v.ts||Date.now());
+  bumpView(v);
+  window.scrollTo({top:0, behavior:'smooth'});
+  refresh();
+}
+function updateReactionUI(){
+  const v = S.videos.find(x => x.id === currentVideoId); if (!v) return;
+  const r = myReaction(v.id);
+  $('likeBtn').classList.toggle('liked', r === 'like');
+  $('dislikeBtn').classList.toggle('disliked', r === 'dislike');
+  $('likeCount').textContent = fmt(likesOf(v));
+}
+$('likeBtn').addEventListener('click', () => { if (currentVideoId) setReaction(currentVideoId, myReaction(currentVideoId)==='like' ? null : 'like'); });
+$('dislikeBtn').addEventListener('click', () => { if (currentVideoId) setReaction(currentVideoId, myReaction(currentVideoId)==='dislike' ? null : 'dislike'); });
+
+$('downloadBtn').addEventListener('click', async () => {
+  const v = S.videos.find(x => x.id === currentVideoId); if (!v) return;
+  try{
+    const blob = await (await fetch(v.url)).blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.style.display='none'; a.href = url;
+    a.download = v.title.replace(/[^a-z0-9]/gi,'_').toLowerCase() + '.mp4';
+    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
+  }catch(err){ alert("Não foi possível baixar direto (restrição do navegador). Link do vídeo: " + v.url); }
+});
+
+// ===== COMENTÁRIOS =====
+function renderComments(){
+  let list = S.comments.filter(c => c.videoId === currentVideoId).sort((a,b) => (a.ts||0) - (b.ts||0));
+  $('commentsList').innerHTML = list.length ? list.map(c => `<div class="comment-item"><div class="comment-user">${c.uid===uid ? 'Você' : esc(nameOf(c.uid))}</div><div class="comment-text">${esc(c.text)}</div></div>`).join('')
+    : `<p style="color:var(--text-muted);padding:12px 0">Seja o primeiro a comentar.</p>`;
+}
+$('commentForm').addEventListener('submit', e => {
+  e.preventDefault();
+  const i = $('commentInput'), t = i.value.trim(); if (!t || !currentVideoId) return;
+  addComment(currentVideoId, t); i.value = '';
+});
+
+// ===== PESQUISA (por legenda) =====
+const sug = $('searchSuggestions');
+$('searchInput').addEventListener('input', e => {
+  const q = e.target.value.trim();
+  if (view !== 'home') setView('home');
+  renderFeed(q);
+  if (q.length < 2){ sug.classList.add('hidden'); return; }
+  const m = searchVideos(q).slice(0,5);
+  if (!m.length){ sug.classList.add('hidden'); return; }
+  sug.innerHTML = m.map(x => `<div class="suggestion-item" data-id="${esc(x.id)}">${esc(x.title)}<small>${esc(snip(x))}</small></div>`).join('');
+  sug.classList.remove('hidden');
+  sug.querySelectorAll('.suggestion-item').forEach(el => el.addEventListener('click', () => { sug.classList.add('hidden'); playVideo(el.dataset.id); }));
+});
+$('searchInput').addEventListener('keydown', e => { if (e.key==='Enter') sug.classList.add('hidden'); });
+document.addEventListener('click', e => { if (!e.target.closest('.search-container')) sug.classList.add('hidden'); });
+
+// ===== UPLOAD =====
+const modal = $('uploadModal');
+$('closeUploadBtn').addEventListener('click', () => modal.classList.add('hidden'));
+function frameThumb(file){
+  return new Promise(res => {
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'metadata';
+    v.src = URL.createObjectURL(file);
+    const done = b => { URL.revokeObjectURL(v.src); res(b); };
+    v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration||1)/2); };
+    v.onseeked = () => {
+      const c = document.createElement('canvas'); c.width = 480; c.height = Math.round(480 * (v.videoHeight||9) / (v.videoWidth||16));
+      frameThumb.dur = v.duration; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); c.toBlob(done, 'image/jpeg', .8);
+    };
+    v.onerror = () => done(null); setTimeout(() => done(null), 8000);
+  });
+}
+$('uploadForm').addEventListener('submit', async e => {
+  e.preventDefault();
+  const title = $('videoTitle').value.trim(), file = $('videoFile').files[0], urlIn = $('videoUrl').value.trim();
+  if (!file && !urlIn){ toast("Escolha um arquivo ou informe uma URL."); return; }
+  if (file && (file.size > 50*1024*1024 || !file.type.startsWith('video/'))){ toast("Use um vídeo de até 50 MB."); return; }
+  const thIn = $('thumbUrl').value.trim();
+  if ((urlIn && !/^https:\/\//i.test(urlIn)) || (thIn && !/^https:\/\//i.test(thIn))){ toast("Use links https:// (o site é https e bloqueia http)."); return; }
+  const btn = e.target.querySelector('button[type=submit]'); btn.disabled = true; btn.textContent = "Enviando...";
+  try{
+    let url = urlIn, thumb = $('thumbUrl').value.trim(); frameThumb.dur = 0;
+    if (file){
+      if (!ASSETS){ toast("Upload de arquivo indisponível aqui; use uma URL."); throw 0; }
+      const up = await ASSETS.upload(file); url = up.url;
+      if (!thumb){ const tb = await frameThumb(file); if (tb){ try{ thumb = (await ASSETS.upload(tb)).url; }catch(_){} } }
+    }
+    await addVideo({id: Date.now().toString(), title, caption: $('videoCaption').value.trim(), url, thumb: thumb || thumbSvg("▶","#ff0033"), duration: file ? Math.round(frameThumb.dur||0) : 0, views:0, baseLikes:0, ts:Date.now(), author:uid});
+    modal.classList.add('hidden'); e.target.reset(); toast("Vídeo publicado!");
+  }catch(err){ if (err) toast("Falha no envio: " + (err.message || err.code || "erro")); }
+  btn.disabled = false; btn.textContent = "Postar Vídeo";
+});
+
+// ===== NAVEGAÇÃO (sidebar desktop + barra inferior mobile) =====
+const ICONS = {
+  home: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round"><path d="M3.5 21V10.8a3.5 3.5 0 0 1 1.3-2.7L12 2.5l7.2 5.6a3.5 3.5 0 0 1 1.3 2.7V21h-5.8v-5.5a1 1 0 0 0-1-1h-1.4a1 1 0 0 0-1 1V21z"/></svg>',
+  share: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M7.5 18a4 4 0 0 1-.9-7.9 5.5 5.5 0 0 1 10.6-.9A4.4 4.4 0 0 1 16.5 18"/><path d="M12 9l4.6 5h-3.2v6.5h-2.8V14H7.4z" fill="currentColor"/></svg>',
+  favs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M12 3l2.7 5.6 6.1.9-4.4 4.3 1 6.1L12 17l-5.4 2.9 1-6.1-4.4-4.3 6.1-.9z"/></svg>',
+  msgs: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round" stroke-linecap="round"><path d="M4 4.5h16v11H9l-5 4z"/></svg>',
+  account: '<svg viewBox="0 0 24 24"><defs><clipPath id="uc"><circle cx="12" cy="12" r="10"/></clipPath></defs><circle cx="12" cy="12" r="10.2" fill="none" stroke="currentColor" stroke-width="1.8"/><circle cx="12" cy="9.2" r="3.6" fill="currentColor"/><ellipse cx="12" cy="21.2" rx="8.4" ry="6.2" fill="currentColor" clip-path="url(#uc)"/></svg>'
+};
+const navHtml = (items, cls) => items.map(([k,l]) => `<button class="nav-item ${cls}" data-nav="${k}">${ICONS[k]}<span>${l}</span></button>`).join('');
+$('sidebar').innerHTML = navHtml([['home','Início'],['share','Partilhar'],['msgs','Mensagens'],['favs','Favoritos'],['account','Eu']], 'side-item');
+$('bottomNav').innerHTML = navHtml([['home','Casa'],['share','Partilhar'],['msgs','Mensagens'],['account','Conta']], '');
+function setActive(k){ document.querySelectorAll('[data-nav]').forEach(n => n.classList.toggle('active', n.dataset.nav === k)); }
+function openUpload(){ if (mode === 'db' && uid === 'anon') return openLogin(); $('fileGroup').classList.toggle('hidden', !ASSETS); modal.classList.remove('hidden'); }
+function go(k){
+  if (k === 'share') return openUpload();
+  if (k === 'home'){ currentVideoId = null; $('searchInput').value = ''; renderFeed(); return setView('home'); }
+  if (k === 'msgs') return setView('messages');
+  viewUid = uid; accTab = (k === 'favs') ? 'favs' : 'mine'; setView('account');
+}
+document.querySelectorAll('[data-nav]').forEach(b => b.addEventListener('click', () => go(b.dataset.nav)));
+$('logoBtn').addEventListener('click', () => go('home'));
+$('hdrAvatar').addEventListener('click', () => go('account'));
+$('createBtn').addEventListener('click', openUpload);
+$('menuBtn').addEventListener('click', () => document.body.classList.toggle('side-hidden'));
+$('bellBtn').addEventListener('click', () => toast('Você não tem notificações.'));
+$('searchBtn').addEventListener('click', () => { sug.classList.add('hidden'); if (view !== 'home') setView('home'); renderFeed($('searchInput').value); });
+$('micBtn').addEventListener('click', () => {
+  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SR) return toast('Pesquisa por voz indisponível neste navegador.');
+  const r = new SR(); r.lang = 'pt-BR'; toast('Fale agora…');
+  r.onresult = e => { const t = e.results[0][0].transcript; $('searchInput').value = t; if (view !== 'home') setView('home'); renderFeed(t); };
+  r.onerror = () => toast('Não foi possível ouvir.'); try{ r.start(); }catch(_){}
+});
+
+// ===== INICIALIZAÇÃO =====
+setTimeout(() => { refresh(); icons(); }, 400);
+icons();
+
+// ===== SUPABASE (cole os 2 valores do painel: Project Settings > API) =====
+const SUPABASE_URL = "https://sbhvblconfveyzthxooa.supabase.co";
+const SUPABASE_KEY = "sb_publishable_BQLkeyP2D8JA8jmIybojPw_kNyfSWXo"; // nunca use a secret/service_role aqui
+let SB = null;
+
+// Adaptador: mantém a mesma API de coleções usada pelo resto do código
+function mkDB(sb){
+  const T = n => n.startsWith('data/users/') ? 'e2e_keys' : n;
+  const P = n => n.startsWith('data/users/') ? n.split('/')[2] + ':' : '';
+  const snap = r => ({id: r.id, data: () => r.data});
+  function col(name, f){
+    const t = T(name), pre = P(name);
+    const sel = () => { let b = sb.from(t).select('id,data').order('created_at', {ascending:false}).limit(1000); if (f) b = b.eq('data->>' + f[0], f[2]); return b; };
+    return {
+      where: (a, o, b) => col(name, [a, o, b]),
+      add: async d => { const {error} = await sb.from(t).insert({id: crypto.randomUUID(), data: d}); if (error) throw error; },
+      doc: id => { const k = pre + id; return {
+        get: async () => { const {data} = await sb.from(t).select('id,data').eq('id', k).maybeSingle(); return {exists: !!data, data: () => data && data.data}; },
+        set: async d => { const {error} = await sb.from(t).upsert({id: k, data: d}); if (error) throw error; },
+        update: async p => {
+          if (t === 'videos' && 'views' in p){ await sb.rpc('bump_views', {vid: k}); return; }
+          const {data} = await sb.from(t).select('data').eq('id', k).maybeSingle();
+          const {error} = await sb.from(t).upsert({id: k, data: {...(data && data.data), ...p}}); if (error) throw error;
+        },
+        delete: async () => { const {error} = await sb.from(t).delete().eq('id', k); if (error) throw error; }
+      }; },
+      onSnapshot: cb => {
+        let tm; const run = async () => { const {data, error} = await sel(); if (!error) cb({docs: (data || []).map(snap)}); }; run();
+        sb.channel('ch-' + t + '-' + Math.random().toString(36).slice(2)).on('postgres_changes', {event:'*', schema:'public', table:t}, () => { clearTimeout(tm); tm = setTimeout(run, 300); }).subscribe();
+      }
+    };
+  }
+  return {collection: n => col(n)};
+}
+function openLogin(){ $('loginModal').classList.remove('hidden'); }
+$('closeLogin').addEventListener('click', () => $('loginModal').classList.add('hidden'));
+$('loginForm').addEventListener('submit', async e => {
+  e.preventDefault(); if (!SB) return;
+  const b = e.target.querySelector('button'); b.disabled = true;
+  const {error} = await SB.auth.signInWithOtp({email: $('loginEmail').value.trim(), options: {emailRedirectTo: location.origin + location.pathname}});
+  b.disabled = false;
+  if (error) return toast('Erro: ' + error.message);
+  toast('Link enviado! Confira seu e-mail.'); $('loginModal').classList.add('hidden');
+});
+
+(async () => {
+  if (!window.supabase || SUPABASE_URL.startsWith('COLE')) return; // sem config: modo local
+  try{
+    SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const {data: {session}} = await SB.auth.getSession();
+    uid = session ? session.user.id : 'anon';
+    if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname);
+    SB.auth.onAuthStateChange((ev, s) => { if ((s ? s.user.id : 'anon') !== uid) location.href = location.pathname; });
+    ASSETS = {upload: async f => {
+      const ext = (f.type.split('/')[1] || 'bin').replace('quicktime', 'mov');
+      const path = uid + '/' + Date.now() + '-' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+      const {error} = await SB.storage.from('videos').upload(path, f, {contentType: f.type, cacheControl: '31536000'});
+      if (error) throw error;
+      return {url: SB.storage.from('videos').getPublicUrl(path).data.publicUrl};
+    }};
+    DB = mkDB(SB); mode = 'db';
+    S = { videos: [], reactions: [], comments: [], favs: [], profiles: {}, follows: {}, dmIn: [], dmOut: [] };
+    const map = s => s.docs.map(d => ({id: d.id, ...d.data()}));
+    DB.collection('videos').onSnapshot(s => { S.videos = map(s); refresh(); });
+    DB.collection('reactions').onSnapshot(s => { S.reactions = map(s); refresh(); });
+    DB.collection('comments').onSnapshot(s => { S.comments = map(s); refresh(); });
+    DB.collection('favorites').onSnapshot(s => { S.favs = map(s); refresh(); });
+    DB.collection('profiles').onSnapshot(s => { S.profiles = Object.fromEntries(s.docs.map(d => [d.id, d.data()])); refresh(); });
+    if (uid !== 'anon'){
+      DB.collection('follows').onSnapshot(s => { S.follows = Object.fromEntries(s.docs.map(d => [d.id, d.data().to || []])); refresh(); });
+      DB.collection('dm').where('to', '==', uid).onSnapshot(s => { S.dmIn = map(s); refresh(); });
+      DB.collection('dm').where('from', '==', uid).onSnapshot(s => { S.dmOut = map(s); refresh(); });
+      initKeys().then(refresh);
+    }
+    refresh();
+  }catch(e){ mode = 'local'; DB = null; console.error(e); }
+})();
+</script>
+
+</body>
+</html>
