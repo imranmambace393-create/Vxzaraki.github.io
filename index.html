@@ -4,6 +4,8 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>VX zaraki - Plataforma de Vídeos</title>
+<meta name="description" content="VX zaraki: assista e compartilhe vídeos.">
+<meta property="og:type" content="website"><meta property="og:title" content="VX zaraki - Plataforma de Vídeos"><meta property="og:description" content="Assista e compartilhe vídeos no VX zaraki.">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/lucide/0.263.1/lucide.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 21'%3E%3Crect width='30' height='21' rx='6' fill='%23ff0033'/%3E%3C/svg%3E">
@@ -161,6 +163,10 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   body.side-hidden .content-container{margin-left:0}
   .main-header{padding:0 16px}
 }
+.thumbnail-wrapper video{width:100%;height:100%;object-fit:cover;display:block;pointer-events:none}
+.share-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:14px}
+.share-grid a,.share-grid button{display:block;text-align:center;text-decoration:none;color:var(--text-main);background:var(--bg-card);border:none;border-radius:12px;padding:14px 6px;font-size:.85rem;font-weight:500;cursor:pointer}
+.share-grid a:hover,.share-grid button:hover{filter:brightness(.93)}
 </style>
 </head>
 <body>
@@ -198,6 +204,7 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
             <button id="likeBtn" class="action-btn"><i class="ico ico-like"></i><span id="likeCount">0</span></button>
             <button id="dislikeBtn" class="action-btn"><i class="ico ico-dislike"></i></button>
           </div>
+          <button id="shareBtn" class="action-btn download"><i data-lucide="share-2"></i><span>Compartilhar</span></button>
           <button id="favBtn" class="action-btn download"><i data-lucide="star"></i><span>Favoritar</span></button>
           <button id="downloadBtn" class="action-btn download"><i data-lucide="download"></i><span>Baixar</span></button>
         </div>
@@ -264,6 +271,12 @@ body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset
   </div>
 </div>
 
+<div id="shareModal" class="modal hidden"><div class="modal-content">
+  <div class="modal-header"><h2>Compartilhar</h2><button id="closeShare" class="close-btn">&times;</button></div>
+  <div class="share-grid" id="shareGrid"></div>
+  <div class="form-group"><input id="shareLink" readonly></div>
+</div></div>
+
 <div id="loginModal" class="modal hidden"><div class="modal-content">
   <div class="modal-header"><h2>Entrar</h2><button id="closeLogin" class="close-btn">&times;</button></div>
   <form id="loginForm"><div class="form-group"><label for="loginEmail">Seu e-mail (enviaremos um link de acesso)</label><input type="email" id="loginEmail" required autocomplete="email"></div>
@@ -325,11 +338,11 @@ const isFav = id => S.favs.some(f => f.videoId===id && f.uid===uid);
 function searchVideos(q){
   const terms = norm(q).split(/\s+/).filter(Boolean);
   const all = S.videos.map(v => ({v, c:norm(v.caption), t:norm(v.title)}));
-  if (!terms.length) return all.map(x => x.v).sort((a,b) => (b.views||0)-(a.views||0));
+  if (!terms.length) return all.map(x => x.v).sort((a,b) => (b.ts||0)-(a.ts||0));
   return all.map(x => { let sc = 0;
       for (const w of terms){ const c = x.c.includes(w), t = x.t.includes(w); if (!c && !t) return null; sc += (c?3:0) + (t?1:0); }
       return {v:x.v, sc}; })
-    .filter(Boolean).sort((a,b) => b.sc-a.sc || (b.v.views||0)-(a.v.views||0)).map(x => x.v);
+    .filter(Boolean).sort((a,b) => b.sc-a.sc || (b.v.ts||0)-(a.v.ts||0)).map(x => x.v);
 }
 const snip = v => { const c = v.caption || ''; return c.length > 70 ? c.slice(0,70) + '…' : c; };
 function saveProfile(patch){
@@ -462,7 +475,7 @@ function addComment(videoId, text){
 }
 
 let view = 'home';
-function setView(v){
+function setView(v, noPush){
   view = v;
   $('videoPlayerSection').classList.toggle('hidden', v !== 'player');
   $('accountSection').classList.toggle('hidden', v !== 'account');
@@ -472,9 +485,11 @@ function setView(v){
   if (v !== 'player') $('mainVideo').pause();
   if (v === 'account') renderAccount();
   if (v === 'messages') renderDm();
+  if (!noPush) pushNav();
   window.scrollTo({top:0});
 }
 function refresh(){
+  if (pendingV && S.videos.some(x => x.id === pendingV)){ const id = pendingV; pendingV = null; playVideo(id, true); hist('replaceState', navState(), location.pathname + '?v=' + encodeURIComponent(id)); return; }
   $('hdrAvatar').firstElementChild.src = avatarOf(uid);
   renderFeed($('searchInput').value);
   if (view === 'account') renderAccount();
@@ -499,11 +514,12 @@ function closeMenu(){ if (menuEl){ menuEl.remove(); menuEl = null; } }
 function showMenu(btn, v){
   closeMenu(); const r = btn.getBoundingClientRect();
   menuEl = document.createElement('div'); menuEl.className = 'menu-pop';
-  menuEl.innerHTML = `<button data-a="fav">${isFav(v.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</button><button data-a="copy">Copiar link</button>`;
-  menuEl.style.top = Math.min(r.bottom, innerHeight - 110) + 'px'; menuEl.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + 'px';
+  menuEl.innerHTML = `<button data-a="fav">${isFav(v.id) ? 'Remover dos favoritos' : 'Adicionar aos favoritos'}</button><button data-a="share">Compartilhar</button><button data-a="copy">Copiar link</button>`;
+  menuEl.style.top = Math.min(r.bottom, innerHeight - 150) + 'px'; menuEl.style.left = Math.max(8, Math.min(r.right - 190, innerWidth - 200)) + 'px';
   menuEl.addEventListener('click', e => { e.stopPropagation(); const a = e.target.dataset.a;
     if (a === 'fav') toggleFav(v.id);
-    if (a === 'copy') navigator.clipboard.writeText(location.href.split('#')[0]).then(() => toast('Link copiado!')).catch(() => toast('Não foi possível copiar'));
+    if (a === 'share') openShare(v.id);
+    if (a === 'copy') copyLink(shareUrl(v.id));
     closeMenu(); });
   document.body.appendChild(menuEl);
 }
@@ -511,7 +527,7 @@ document.addEventListener('click', closeMenu);
 function makeCard(v, stats){
   const card = document.createElement('div'); card.className = 'video-card';
   const nc = S.comments.filter(c => c.videoId===v.id).length, nf = S.favs.filter(f => f.videoId===v.id).length, a = v.author || 'vx';
-  card.innerHTML = `<div class="thumbnail-wrapper"><img src="${esc(v.thumb||thumbSvg('▶','#ff0033'))}" alt="${esc(v.title)}" loading="lazy">${v.duration ? `<span class="dur">${fmtDur(v.duration)}</span>` : ''}</div>
+  card.innerHTML = `<div class="thumbnail-wrapper">${noThumb(v) ? `<video src="${esc(v.url)}#t=0.8" preload="metadata" muted playsinline></video>` : `<img src="${esc(v.thumb)}" alt="${esc(v.title)}" loading="lazy">`}${v.duration ? `<span class="dur">${fmtDur(v.duration)}</span>` : ''}</div>
     <div class="card-row"><img class="card-avatar" src="${esc(avatarOf(a))}" alt="">
     <div class="card-info"><h3 class="card-title">${esc(v.title)}</h3>
     <div class="card-channel">${esc(nameOf(a))}</div>
@@ -592,15 +608,15 @@ window.addEventListener('scroll', () => {
 });
 
 // ===== PLAYER =====
-function playVideo(id){
+function playVideo(id, fromNav){
   const v = S.videos.find(x => x.id === id); if (!v) return;
   currentVideoId = id;
-  setView('player');
-  const mv = $('mainVideo'); mv.src = v.url; mv.poster = v.thumb || "";
+  setView('player', fromNav);
+  const mv = $('mainVideo'); mv.src = v.url; mv.poster = noThumb(v) ? "" : (v.thumb || "");
   mv.play().catch(()=>{});
   $('playerTitle').textContent = v.title;
   $('playerDate').textContent = v.date || rel(v.ts||Date.now());
-  bumpView(v);
+  if (!fromNav) bumpView(v);
   window.scrollTo({top:0, behavior:'smooth'});
   refresh();
 }
@@ -658,15 +674,31 @@ const modal = $('uploadModal');
 $('closeUploadBtn').addEventListener('click', () => modal.classList.add('hidden'));
 function frameThumb(file){
   return new Promise(res => {
-    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'metadata';
-    v.src = URL.createObjectURL(file);
-    const done = b => { URL.revokeObjectURL(v.src); res(b); };
-    v.onloadeddata = () => { v.currentTime = Math.min(1, (v.duration||1)/2); };
-    v.onseeked = () => {
-      const c = document.createElement('canvas'); c.width = 480; c.height = Math.round(480 * (v.videoHeight||9) / (v.videoWidth||16));
-      frameThumb.dur = v.duration; c.getContext('2d').drawImage(v, 0, 0, c.width, c.height); c.toBlob(done, 'image/jpeg', .8);
+    const v = document.createElement('video'); v.muted = true; v.playsInline = true; v.preload = 'auto';
+    const url = URL.createObjectURL(file); v.src = url;
+    let fin = false; const done = b => { if (fin) return; fin = true; URL.revokeObjectURL(url); res(b); };
+    const tries = [0.1, 0.3, 0.5, 0.02]; let k = 0;
+    const seek = () => { const d = v.duration || 1; v.currentTime = Math.min(Math.max(d * tries[k], 0.3), Math.max(d - 0.1, 0)); };
+    const grab = () => {
+      const w = 480, h = Math.round(w * (v.videoHeight||9) / (v.videoWidth||16));
+      const c = document.createElement('canvas'); c.width = w; c.height = h;
+      const x = c.getContext('2d'); x.drawImage(v, 0, 0, w, h);
+      const d = x.getImageData(0, 0, w, h).data; let s = 0, n = 0;
+      for (let i = 0; i < d.length; i += 388){ s += d[i] + d[i+1] + d[i+2]; n += 3; }
+      return {c, dark: s / n < 12};
     };
-    v.onerror = () => done(null); setTimeout(() => done(null), 8000);
+    v.onloadedmetadata = () => { frameThumb.dur = v.duration; seek(); };
+    v.onseeked = () => {
+      let p = false;
+      const paint = () => {
+        if (p) return; p = true;
+        try{ const g = grab(); if (!g.dark || k >= tries.length - 1){ g.c.toBlob(done, 'image/jpeg', .8); return; } }catch(_){ return done(null); }
+        k++; seek();
+      };
+      if (v.requestVideoFrameCallback) v.requestVideoFrameCallback(paint);
+      setTimeout(paint, 700);
+    };
+    v.onerror = () => done(null); setTimeout(() => done(null), 15000);
   });
 }
 $('uploadForm').addEventListener('submit', async e => {
@@ -685,7 +717,7 @@ $('uploadForm').addEventListener('submit', async e => {
       if (!thumb){ const tb = await frameThumb(file); if (tb){ try{ thumb = (await ASSETS.upload(tb)).url; }catch(_){} } }
     }
     await addVideo({id: Date.now().toString(), title, caption: $('videoCaption').value.trim(), url, thumb: thumb || thumbSvg("▶","#ff0033"), duration: file ? Math.round(frameThumb.dur||0) : 0, views:0, baseLikes:0, ts:Date.now(), author:uid});
-    modal.classList.add('hidden'); e.target.reset(); toast("Vídeo publicado!");
+    modal.classList.add('hidden'); e.target.reset(); toast("Vídeo publicado!"); $('searchInput').value = ''; renderFeed(); setView('home');
   }catch(err){ if (err) toast("Falha no envio: " + (err.message || err.code || "erro")); }
   btn.disabled = false; btn.textContent = "Postar Vídeo";
 });
@@ -723,6 +755,54 @@ $('micBtn').addEventListener('click', () => {
   r.onresult = e => { const t = e.results[0][0].transcript; $('searchInput').value = t; if (view !== 'home') setView('home'); renderFeed(t); };
   r.onerror = () => toast('Não foi possível ouvir.'); try{ r.start(); }catch(_){}
 });
+
+// ===== CAPAS, COMPARTILHAR E HISTÓRICO (botão voltar) =====
+function noThumb(v){ return !!v.author && (!v.thumb || String(v.thumb).startsWith('data:image/svg')); }
+const shareUrl = id => location.origin + location.pathname + '?v=' + encodeURIComponent(id);
+function copyLink(u, msg){
+  (navigator.clipboard ? navigator.clipboard.writeText(u) : Promise.reject()).then(() => toast(msg || 'Link copiado!'))
+    .catch(() => toast('Não foi possível copiar automaticamente.'));
+}
+function openShare(id){
+  const v = S.videos.find(x => x.id === id); if (!v) return;
+  const u = shareUrl(id), t = v.title, eu = encodeURIComponent(u), et = encodeURIComponent(t);
+  const show = () => {
+    $('shareLink').value = u;
+    $('shareGrid').innerHTML = [
+      ['WhatsApp', 'https://wa.me/?text=' + encodeURIComponent(t + ' ' + u)],
+      ['Facebook', 'https://www.facebook.com/sharer/sharer.php?u=' + eu],
+      ['X', 'https://twitter.com/intent/tweet?text=' + et + '&url=' + eu],
+      ['Telegram', 'https://t.me/share/url?url=' + eu + '&text=' + et],
+      ['E-mail', 'mailto:?subject=' + et + '&body=' + eu]
+    ].map(([n, h]) => `<a href="${esc(h)}" target="_blank" rel="noopener noreferrer">${n}</a>`).join('')
+      + '<button type="button" data-ig="1">Instagram</button><button type="button" data-ig="0">Copiar link</button>';
+    $('shareGrid').querySelectorAll('[data-ig]').forEach(b => b.onclick = () => copyLink(u, b.dataset.ig === '1' ? 'Link copiado! Cole no Instagram (story, bio ou direct).' : ''));
+    $('shareModal').classList.remove('hidden');
+  };
+  if (navigator.share && matchMedia('(pointer:coarse)').matches)
+    navigator.share({title: t, text: t, url: u}).catch(e => { if (!e || e.name !== 'AbortError') show(); });
+  else show();
+}
+$('closeShare').addEventListener('click', () => $('shareModal').classList.add('hidden'));
+$('shareBtn').addEventListener('click', () => { if (currentVideoId) openShare(currentVideoId); });
+
+// history com proteção: em arquivo local ou iframe o navegador bloqueia a troca de URL; nesse caso mantém só o estado
+function hist(kind, s, url){ try{ history[kind](s, '', url); }catch(_){ try{ history[kind](s, ''); }catch(__){} } }
+function navState(){ return {view, vid: view === 'player' ? currentVideoId : null, vu: viewUid, tab: accTab, peer: chatPeer}; }
+function pushNav(){
+  const s = navState();
+  if (history.state && JSON.stringify(history.state) === JSON.stringify(s)) return;
+  hist('pushState', s, s.vid ? location.pathname + '?v=' + encodeURIComponent(s.vid) : location.pathname);
+}
+window.addEventListener('popstate', e => {
+  const s = e.state || {view: 'home'};
+  closeMenu(); ['uploadModal', 'loginModal', 'shareModal'].forEach(i => $(i).classList.add('hidden'));
+  currentVideoId = s.vid || null; viewUid = s.vu || null; accTab = s.tab || 'mine'; chatPeer = s.peer || null;
+  if (s.view === 'player' && s.vid && S.videos.some(v => v.id === s.vid)) playVideo(s.vid, true);
+  else setView(s.view === 'player' ? 'home' : (s.view || 'home'), true);
+});
+let pendingV = new URLSearchParams(location.search).get('v');
+hist('replaceState', {view: 'home', vid: null, vu: null, tab: 'mine', peer: null}, location.pathname + location.search);
 
 // ===== INICIALIZAÇÃO =====
 setTimeout(() => { refresh(); icons(); }, 400);
@@ -779,7 +859,7 @@ $('loginForm').addEventListener('submit', async e => {
     SB = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
     const {data: {session}} = await SB.auth.getSession();
     uid = session ? session.user.id : 'anon';
-    if (location.hash.includes('access_token')) history.replaceState(null, '', location.pathname);
+    if (location.hash.includes('access_token')) hist('replaceState', null, location.pathname);
     SB.auth.onAuthStateChange((ev, s) => { if ((s ? s.user.id : 'anon') !== uid) location.href = location.pathname; });
     ASSETS = {upload: async f => {
       const ext = (f.type.split('/')[1] || 'bin').replace('quicktime', 'mov');
